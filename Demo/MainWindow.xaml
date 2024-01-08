@@ -7,6 +7,11 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525">
     <Grid>
-        <Button Content="Show Toast" Click="Button_Click"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Button x:Name="CustomToast" Content="Show Custom Toast" Click="CustomToast_Click" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Padding="20,8" Margin="0,0,10,0"/>
+            <Button x:Name="NormalToast" Content="Show Toast" Click="NormalToast_Click" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Padding="20,8"/>
+        </StackPanel>
     </Grid>
 </Window>

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -12,9 +13,6 @@ using Toasty.WPF;
 
 namespace Demo
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         public MainWindow()
@@ -22,29 +20,53 @@ namespace Demo
             InitializeComponent();
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private void NormalToast_Click(object sender, RoutedEventArgs e)
         {
-            // Generate a random integer between 1 and 100 (you can adjust the range)
-            Random random = new Random();
+            var random = new Random();
+            int randomNumber = random.Next(1, 101);
+            Toast.MakeText(this, $"این یک پیام تست است - {randomNumber}", Toast.LENGTH_SHORT).Show();
+        }
+
+        private void CustomToast_Click(object sender, RoutedEventArgs e)
+        {
+            var random = new Random();
             int randomNumber = random.Next(1, 101);
 
-            // Create the message with the random number
-            string message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " +
-                          "Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. \n" +
-                          $"این یک پیام تست است - {randomNumber}. \n" +
-                          "Curabitur eget justo ut ex dapibus convallis.";
-
-            // Show the toast with the modified message
-            //Toast.MakeText(this, message, Toast.LENGTH_LONG).Show();
+            string message = "This is a test message.\n" +
+                            "این یک پیام تست است.\n" +
+                            "C'est un message de test.\n" +
+                            "यह एक परीक्षण संदेश है.\n" +
+                            "这是一条测试消息。\n" +
+                            "Curabitur eget justo ut ex dapibus convallis.\n" +
+                            randomNumber;
 
             var toast = new Toast(this)
             {
-                BackgroundColor = Brushes.Red,
+                BackgroundColor = GetRandomDarkBrush(),
                 TextColor = Brushes.Yellow,
                 Message = message,
-                Duration = Toast.LENGTH_LONG
+                Duration = Toast.LENGTH_LONG,
+                FontFamily = new FontFamily("IRANYekanFN"),
+                FontSize = 14,
+                FontWeight = FontWeights.Bold,
+                FontStyle = FontStyles.Italic,
+                Direction = FlowDirection.RightToLeft,
+                Tag = randomNumber
             };
+            toast.OnShown += () => Debug.WriteLine($"Toast is shown! TAG: {toast.Tag}");
+            toast.OnHidden += () => Debug.WriteLine($"Toast is hidden! TAG: {toast.Tag}");
             toast.Show();
+        }
+
+        private static SolidColorBrush GetRandomDarkBrush()
+        {
+            var random = new Random();
+
+            byte red = (byte)random.Next(0, 128);
+            byte green = (byte)random.Next(0, 128);
+            byte blue = (byte)random.Next(0, 128);
+
+            return new SolidColorBrush(Color.FromRgb(red, green, blue));
         }
     }
 }

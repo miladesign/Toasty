@@ -6,27 +6,106 @@ using System.Windows.Threading;
 
 namespace Toasty.WPF;
 
-public class Toast
+/// <summary>
+/// A toast is a view containing a quick little message for the user. The toast class helps you create and show those.
+/// </summary>
+/// <param name="window">Parent window</param>
+public class Toast(Window window)
 {
+    #region Constants
+    /// <summary>
+    /// Show the view or text notification for a short period of time.
+    /// </summary>
     public const int LENGTH_SHORT = 2000;
-    public const int LENGTH_LONG = 3500;
 
+    /// <summary>
+    /// Show the view or text notification for a long period of time.
+    /// </summary>
+    public const int LENGTH_LONG = 3500;
+    #endregion
+
+    #region Variables
+    private readonly Window? ParentWindow = window;
     private static readonly Queue<Toast> toastQueue = new();
     private static bool isToastShowing = false;
 
+    /// <summary>
+    /// Gets or sets the text message to be displayed in the toast notification.
+    /// </summary>
     public string? Message;
+
+    /// <summary>
+    /// Gets or sets the duration for which the toast message will be displayed (in milliseconds).
+    /// </summary>
     public int Duration;
-    private Window? ParentWindow;
-    public System.Windows.Media.FontFamily? FontFamily = null;
-    public System.Windows.Media.Brush BackgroundColor = System.Windows.Media.Brushes.Black;
-    public System.Windows.Media.Brush TextColor = System.Windows.Media.Brushes.White;
-    public double FontSize = 15;
 
-    public Toast(Window window)
-    {
-        ParentWindow = window;
-    }
+    /// <summary>
+    /// Gets or sets the font family for the toast notification text.
+    /// If set to null, the default font family will be used.
+    /// </summary>
+    public System.Windows.Media.FontFamily? FontFamily { get; set; } = null;
 
+    /// <summary>
+    /// Gets or sets the background color for the toast notification.
+    /// The default color is black.
+    /// </summary>
+    public System.Windows.Media.Brush BackgroundColor { get; set; } = System.Windows.Media.Brushes.Black;
+
+    /// <summary>
+    /// Gets or sets the text color for the toast notification.
+    /// The default color is white.
+    /// </summary>
+    public System.Windows.Media.Brush TextColor { get; set; } = System.Windows.Media.Brushes.White;
+
+    /// <summary>
+    /// Gets or sets the font size for the toast notification text.
+    /// The default font size is 15.
+    /// </summary>
+    public double FontSize { get; set; } = 15;
+
+    /// <summary>
+    /// Gets or sets the font weight for the toast notification text.
+    /// The default font weight is Normal.
+    /// </summary>
+    public FontWeight FontWeight { get; set; } = FontWeights.Normal;
+
+    /// <summary>
+    /// Gets or sets the font style for the toast notification text.
+    /// The default font style is Normal.
+    /// </summary>
+    public System.Windows.FontStyle FontStyle { get; set; } = System.Windows.FontStyles.Normal;
+
+    /// <summary>
+    /// Occurs when the toast notification is shown.
+    /// </summary>
+    public event Action? OnShown;
+
+    /// <summary>
+    /// Occurs when the toast notification is hidden.
+    /// </summary>
+    public event Action? OnHidden;
+
+    /// <summary>
+    /// Gets or sets the flow direction for the toast notification text.
+    /// The default flow direction is LeftToRight.
+    /// </summary>
+    public System.Windows.FlowDirection Direction { get; set; } = System.Windows.FlowDirection.LeftToRight;
+
+    /// <summary>
+    /// Gets or sets an optional tag (object) associated with the toast notification.
+    /// This tag can be used to attach additional data or information to the notification.
+    /// </summary>
+    public object? Tag { get; set; } = null;
+
+    #endregion
+
+    /// <summary>
+    /// Make a standard toast that just contains text.
+    /// </summary>
+    /// <param name="window">Parent window</param>
+    /// <param name="message">The text to show. Can be formatted text.</param>
+    /// <param name="duration">How long to display the message. Either LENGTH_SHORT or LENGTH_LONG Value is LENGTH_SHORT, or LENGTH_LONG</param>
+    /// <returns>Toast</returns>
     public static Toast MakeText(Window window, string message, int duration)
     {
         return new Toast(window)
@@ -36,6 +115,9 @@ public class Toast
         };
     }
 
+    /// <summary>
+    /// Show the view for the specified duration.
+    /// </summary>
     public void Show()
     {
         if (Duration <= 0)
@@ -54,13 +136,16 @@ public class Toast
         });
     }
 
-    private ToastWindow CreateToastWindow(string message)
+    private static ToastWindow CreateToastWindow(System.Windows.Window? window, string message,
+        System.Windows.Media.Brush backColor, System.Windows.Media.Brush textColor,
+        System.Windows.Media.FontFamily? font, double fontSize, FontWeight fontWeight, System.Windows.FontStyle fontStyle,
+        System.Windows.FlowDirection direction)
     {
-        return new ToastWindow(ParentWindow ?? System.Windows.Application.Current.MainWindow, message,
-            BackgroundColor, TextColor, FontFamily, FontSize);
+        return new ToastWindow(window ?? System.Windows.Application.Current.MainWindow, message,
+            backColor, textColor, font, fontSize, fontWeight, fontStyle, direction);
     }
 
-    private void ShowNextToast()
+    private static void ShowNextToast()
     {
         if (toastQueue.Count > 0)
         {
@@ -68,7 +153,8 @@ public class Toast
 
             isToastShowing = true;
 
-            var toastWindow = CreateToastWindow(nextToast.Message ?? "");
+            var toastWindow = CreateToastWindow(nextToast.ParentWindow, nextToast.Message ?? "", nextToast.BackgroundColor, nextToast.TextColor,
+                nextToast.FontFamily, nextToast.FontSize, nextToast.FontWeight, nextToast.FontStyle, nextToast.Direction);
 
             toastWindow.Closed += (sender, args) =>
             {
@@ -78,21 +164,24 @@ public class Toast
 
             toastWindow.Show();
 
+            nextToast.OnShown?.Invoke();
+
             var timer = new DispatcherTimer();
             timer.Tick += (sender, args) =>
             {
-                CloseWithFadeout(toastWindow, timer);
+                CloseWithFadeout(toastWindow, timer, nextToast.OnHidden);
             };
             timer.Interval = TimeSpan.FromMilliseconds(nextToast.Duration);
             timer.Start();
         }
     }
 
-    private static void CloseWithFadeout(ToastWindow toastWindow, DispatcherTimer timer)
+    private static void CloseWithFadeout(ToastWindow toastWindow, DispatcherTimer timer, Action? onHidden)
     {
         DoubleAnimation animation = new(1.0, 0.0, TimeSpan.FromMilliseconds(500));
         animation.Completed += (sender, args) =>
         {
+            onHidden?.Invoke();
             toastWindow.Close();
             timer.Stop();
         };
@@ -100,11 +189,12 @@ public class Toast
     }
 }
 
-public class ToastWindow : Window
+internal class ToastWindow : Window
 {
     public ToastWindow(Window parentWindow, string message,
         System.Windows.Media.Brush backgroundColor, System.Windows.Media.Brush textColor,
-        System.Windows.Media.FontFamily? fontFamily, double fontSize)
+        System.Windows.Media.FontFamily? fontFamily, double fontSize, FontWeight fontWeight, System.Windows.FontStyle fontStyle,
+        System.Windows.FlowDirection direction)
     {
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
@@ -122,6 +212,8 @@ public class ToastWindow : Window
             Opacity = 0.9,
             FontSize = fontSize,
             TextWrapping = TextWrapping.Wrap,
+            FontWeight = fontWeight,
+            FontStyle = fontStyle,
         };
         if (fontFamily != null)
         {
@@ -139,7 +231,7 @@ public class ToastWindow : Window
         };
 
         SizeToContent = SizeToContent.WidthAndHeight;
-
+        FlowDirection = direction;
         Content = border;
 
         WindowStartupLocation = WindowStartupLocation.Manual;
