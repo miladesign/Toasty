@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
@@ -10,7 +9,7 @@ namespace Toasty.WPF;
 /// A toast is a view containing a quick little message for the user. The toast class helps you create and show those.
 /// </summary>
 /// <param name="window">Parent window</param>
-public class Toast(Window window)
+public class Toast
 {
     #region Constants
     /// <summary>
@@ -25,7 +24,7 @@ public class Toast(Window window)
     #endregion
 
     #region Variables
-    private readonly Window? ParentWindow = window;
+    private Window? ParentWindow;
     private static readonly Queue<Toast> toastQueue = new();
     private static bool isToastShowing = false;
 
@@ -99,6 +98,13 @@ public class Toast(Window window)
 
     #endregion
 
+    #region Public Methods
+
+    public Toast(Window parent)
+    {
+        ParentWindow = parent;
+    }
+
     /// <summary>
     /// Make a standard toast that just contains text.
     /// </summary>
@@ -106,9 +112,9 @@ public class Toast(Window window)
     /// <param name="message">The text to show. Can be formatted text.</param>
     /// <param name="duration">How long to display the message. Either LENGTH_SHORT or LENGTH_LONG Value is LENGTH_SHORT, or LENGTH_LONG</param>
     /// <returns>Toast</returns>
-    public static Toast MakeText(Window window, string message, int duration)
+    public static Toast MakeText(Window parent, string message, int duration)
     {
-        return new Toast(window)
+        return new Toast(parent)
         {
             Message = message,
             Duration = duration
@@ -136,6 +142,9 @@ public class Toast(Window window)
         });
     }
 
+    #endregion
+
+    #region Private Methods
     private static ToastWindow CreateToastWindow(System.Windows.Window? window, string message,
         System.Windows.Media.Brush backColor, System.Windows.Media.Brush textColor,
         System.Windows.Media.FontFamily? font, double fontSize, FontWeight fontWeight, System.Windows.FontStyle fontStyle,
@@ -187,6 +196,8 @@ public class Toast(Window window)
         };
         toastWindow.BeginAnimation(UIElement.OpacityProperty, animation);
     }
+
+    #endregion
 }
 
 internal class ToastWindow : Window
